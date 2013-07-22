@@ -1,0 +1,38 @@
+<div>
+  <b>Welcome :)</b>
+  <br>
+  <textarea>localhost:3000/peer message</textarea>
+  <br>
+  <button>send</button>
+  <br>
+  <p id="responses"></p>
+</div>
+<!--script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script-->
+<script src="/lib/apis.js"></script>
+
+<script>
+window.onload = function(){
+
+
+$bee({path: '/js/sharedWorker.js', ns: 'NDN'}).ready(function(bee, port, sw){
+  
+  bee.listen(function(data, e){
+    console.log('INDEX:\n\n'
+      , '\t data is:', data
+      , '\n\ne:', e
+      , ' \n\nport:', port
+      , '\n\nsw:', sw
+    );
+  });
+  
+  document.querySelector('button').onclick = function(){
+    var msg = document.querySelector('textarea').value;
+    //bee.post(msg);
+    bee.bcast(msg);
+  };
+  
+}, true);
+
+
+};
+</script>
