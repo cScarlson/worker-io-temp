@@ -14,17 +14,24 @@ var $bee = $bee || (function(){
       opts.path = opts.path || '/js/scriptorium.js';
       opts.ns = opts.ns || 'Apis-Scriptorium-SharedWorker';
       self.sw = (opts) && new SharedWorker(opts.path, opts.ns);
+      self.port = self.sw.port;
+      
+      window.onbeforeunload = function(){
+        //self.sw.port.emit('destroy port');
+        //return '';
+      };
       
       return {
         self: self,
         sw: self.sw,
+        port: self.port,
+        start: self.start,
         ready: self.ready,
-        post: self.post,
         listen: self.listen,
         on: self.on,
+        post: self.post,
         emit: self.emit,
         bcast: self.bcast,
-        start: self.start,
         error: self.error
       };
     };
@@ -33,20 +40,38 @@ var $bee = $bee || (function(){
   Apis.prototype = (function(){
     var port, object = function(){};
     
-    var utils = {
+    var promise = {
+      promises: [],
       when: (function(){
-        var promises = [];
-        
         return function(event){
-          var event = new CustomEvent(event, {});
-          return function(cb){
-            promises.push({key: promise, callback: cb});
+          return function(callback){
+            promise.promises.push({event: event, callback: callback});
           };
         };
       })()
     };
     
-    function getData(msg){};
+    var utils = {
+      listenTo: function(event, callback){
+        self.sw.port.addEventListener(event, function(e){
+          callback(e.data, e);
+        }, false);
+      },
+      newEmit: function(event, data){
+        return {
+          _event: event,
+          _data: data
+        };
+      },
+      dispatch: function(event, data, e){
+        var data = data;
+        if(data.constructor !== String){
+          console.log('is data. Get event!');
+          var messageEvent = new MessageEvent(event, {data: data});
+          self.sw.port.dispatchEvent(messageEvent);
+        }
+      }
+    };
     
     function start(){
       port.start();
@@ -54,40 +79,44 @@ var $bee = $bee || (function(){
       return this;
     };
     
-    function ready(cb, run){
+    function ready(callback, run){
       port = this.sw.port;
       (run === true) && start();
-      (cb) && cb(this, port, this.sw);
+      (callback) && callback(this, port, this.sw);
       
       return this;
     };
     
-    function onMessage(cb){
+    function listen(callback){
       self.sw.port.addEventListener('message', function(e){
-        var data = e.data;
-        (cb) && cb(data, e);
+        (callback) && callback(e.data, e);
       }, false);
       
       return this;
     };
     
-    function postMsg(data){
-      self.sw.port.postMessage(data);  // just a string
-      
+    function on(event, callback){
+      //promise.when(event)(callback);
+      utils.listenTo(event, callback);
+      self.sw.port.addEventListener('message', function(e){
+        utils.dispatch(event, e.data, e);
+      }, false);
       return this;
     };
     
-    function on(){};
+    function post(data){
+      self.sw.port.postMessage(data);
+      return this;
+    };
     
     function emit(event, data, callback){
-      var _data = JSON.stringify({_event: event, _data: data});
-      postMsg(_data);
-      
+      var emission = utils.newEmit(event, data);
+      post(emission);
+      (callback) && callback(emission);
       return this
     };
     
     function broadcast(data){
-      emit('broadcast', data, function(){});
       return this;
     };
     
@@ -102,13 +131,13 @@ var $bee = $bee || (function(){
     };
     
     return {
+      start: start,
       ready: ready,
-      post: postMsg,
-      listen: onMessage,
+      listen: listen,
       on: on,
+      post: post,
       emit: emit,
       bcast: broadcast,
-      start: start,
       error: error
     };
   })();

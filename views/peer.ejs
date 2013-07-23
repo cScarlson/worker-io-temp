@@ -16,6 +16,21 @@ window.onload = function(){
 
 $bee({path: '/js/sharedWorker.js', ns: 'NDN'}).ready(function(bee, port, sw){
   
+  bee.on('pong', function(data, e){
+    console.log('pong:', data, e);
+  });
+  
+  bee.on('foo', function(data, e){
+    console.log('foo:', data, e);
+  });
+  
+  document.querySelector('button').onclick = function(){
+    var msg = document.querySelector('textarea').value;
+    bee.emit('ping', 'my ping');
+    console.log('....?');
+  };
+  
+  /*
   bee.listen(function(data, e){
     console.log('INDEX:\n\n'
       , '\t data is:', data
@@ -24,12 +39,14 @@ $bee({path: '/js/sharedWorker.js', ns: 'NDN'}).ready(function(bee, port, sw){
       , '\n\nsw:', sw
     );
   });
-  
+  */
+  /*
   document.querySelector('button').onclick = function(){
     var msg = document.querySelector('textarea').value;
-    //bee.post(msg);
-    bee.bcast(msg);
+    bee.post(msg);
+    //bee.bcast(msg);
   };
+  */
   
 }, true);
 

@@ -21,7 +21,10 @@ var $hive = $hive || (function(self){
         hive: hive,
         load: hive.load,
         listen: hive.listen,
-        post: hive.post
+        on: hive.on,
+        post: hive.post,
+        emit: hive.emit,
+        bcast: hive.bcast
       };
     };
   };
@@ -38,31 +41,29 @@ var $hive = $hive || (function(self){
         , evt = msg._event
         , data = msg._data;
       
-      emit(evt, data, callback);
+      //emit(evt, data, callback);
     };
     
     function listen(callback){
       hive.port.addEventListener('message', function(e){
-        var data = handleEvent(e.data, callback, e);
+        hive.port = e.target; // IMPORTANT! - ASSIGN hive.port to current!
+        (callback) && callback(e.data, e);
       }, false);
       
       return this;
     };
     
-    function post(data){
-      hive.port.postMessage(data);
-      
+    function on(event, callback){
+      //utils.when(event)(callback);
       return this;
     };
     
-    function on(){};
+    function post(data){
+      hive.port.postMessage(data);
+      return this;
+    };
     
     function emit(event, data, callback){
-      if(event === 'message'){
-        post(data);
-      }else if(event === 'broadcast'){
-        broadcast(data);
-      }
       return this;
     };
     
@@ -78,7 +79,10 @@ var $hive = $hive || (function(self){
     return {
       load: load,
       listen: listen,
-      post: post
+      on: on,
+      post: post,
+      emit: emit,
+      bcast: broadcast
     };
   })();
   
